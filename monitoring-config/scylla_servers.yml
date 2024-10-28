@@ -1,0 +1,13 @@
+# List Scylla end points
+
+# An example with a single cluster and two DC
+- targets:
+       - 192.168.100.101
+       - 192.168.100.102
+       - 192.168.100.103
+       - 192.168.100.104
+       - 192.168.100.105
+  labels:
+       cluster: TestCluster
+       dc: datacenter1
+

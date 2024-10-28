@@ -1,0 +1,4 @@
+# List Scylla Manager end points
+
+- targets:
+  - 192.168.100.121:5090

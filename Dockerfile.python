@@ -1,0 +1,18 @@
+# Use the official Python base image
+FROM python:3.11
+
+# Set the working directory inside the container
+WORKDIR /scripts
+
+# Copy the requirements file into the container
+COPY requirements.txt .
+
+# Install the Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# (Optional) Copy your scripts into the image
+# Since you are mounting the scripts as a volume, this step is not necessary
+# COPY scripts/ /tmp/scripts/
+
+# Keep the container running
+CMD ["tail", "-f", "/dev/null"]

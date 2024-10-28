@@ -1,0 +1,246 @@
+services:
+  node1:
+    image: scylladb/scylla:latest
+    container_name: node1
+    hostname: node1
+    command:
+      - --alternator-port=8000
+      - --alternator-write-isolation=only_rmw_uses_lwt
+      - --alternator-ttl-period-in-seconds=15
+      - --reactor-backend=epoll
+      - --smp=1
+      - --memory=1G
+    restart: unless-stopped
+    volumes:
+      - node1-data:/var/lib/scylla
+    networks:
+      public:
+        ipv4_address: 192.168.100.101
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -X GET --header 'Accept: application/json' 'http://localhost:10000/storage_service/native_transport'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  node2:
+    image: scylladb/scylla:latest
+    container_name: node2
+    hostname: node2
+    command:
+      - --alternator-port=8000
+      - --alternator-write-isolation=only_rmw_uses_lwt
+      - --alternator-ttl-period-in-seconds=15
+      - --reactor-backend=epoll
+      - --smp=1
+      - --memory=1G
+      - --seed=node1
+    restart: unless-stopped
+    volumes:
+      - node2-data:/var/lib/scylla
+    depends_on: 
+      - node1
+    networks:
+      public:
+        ipv4_address: 192.168.100.102
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -X GET --header 'Accept: application/json' 'http://localhost:10000/storage_service/native_transport'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  node3:
+    image: scylladb/scylla:latest
+    container_name: node3
+    hostname: node3
+    command:
+      - --alternator-port=8000
+      - --alternator-write-isolation=only_rmw_uses_lwt
+      - --alternator-ttl-period-in-seconds=15
+      - --reactor-backend=epoll
+      - --smp=1
+      - --memory=1G
+      - --seed=node1
+    restart: unless-stopped
+    depends_on: 
+      - node1
+    volumes:
+      - node3-data:/var/lib/scylla
+    networks:
+      public:
+        ipv4_address: 192.168.100.103
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -X GET --header 'Accept: application/json' 'http://localhost:10000/storage_service/native_transport'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  node4:
+    image: scylladb/scylla:latest
+    container_name: node4
+    hostname: node4
+    command:
+      - --alternator-port=8000
+      - --alternator-write-isolation=only_rmw_uses_lwt
+      - --alternator-ttl-period-in-seconds=15
+      - --reactor-backend=epoll
+      - --smp=1
+      - --memory=1G
+      - --seed=node1
+    restart: unless-stopped
+    depends_on: 
+      - node1
+    volumes:
+      - node4-data:/var/lib/scylla
+    networks:
+      public:
+        ipv4_address: 192.168.100.104
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -X GET --header 'Accept: application/json' 'http://localhost:10000/storage_service/native_transport'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  node5:
+    image: scylladb/scylla:latest
+    container_name: node5
+    hostname: node5
+    command:
+      - --alternator-port=8000
+      - --alternator-write-isolation=only_rmw_uses_lwt
+      - --alternator-ttl-period-in-seconds=15
+      - --reactor-backend=epoll
+      - --smp=1
+      - --memory=1G
+      - --seed=node1
+    restart: unless-stopped
+    depends_on: 
+      - node1
+    volumes:
+      - node5-data:/var/lib/scylla
+    networks:
+      public:
+        ipv4_address: 192.168.100.105
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -X GET --header 'Accept: application/json' 'http://localhost:10000/storage_service/native_transport'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+# Scylla Monitoring Stack
+
+  alertmanager:
+    container_name: aalert
+    image: prom/alertmanager:v0.26.0
+    ports:
+    - 9093:9093
+    volumes:
+    - ./scylla-monitoring-4.8.1/prometheus/rule_config.yml:/etc/alertmanager/config.yml
+    networks:
+      public:
+        ipv4_address: 192.168.100.201
+
+  grafana:
+    container_name: agraf
+    environment:
+    - GF_PANELS_DISABLE_SANITIZE_HTML=true
+    - GF_PATHS_PROVISIONING=/var/lib/grafana/provisioning
+    - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=scylladb-scylla-datasource
+    # This is where you set Grafana security
+    - GF_AUTH_BASIC_ENABLED=false
+    - GF_AUTH_ANONYMOUS_ENABLED=true
+    - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    - GF_SECURITY_ADMIN_PASSWORD=admin
+    # To set your home dashboard uncomment the following line, set VERSION to be your current version
+    #- GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/ver_VERSION/scylla-overview.VERSION.json
+    image: grafana/grafana:10.4.1
+    ports:
+    - 3000:3000
+    user: 1000:1000
+    volumes:
+    - ./scylla-monitoring-4.8.1/grafana/build:/var/lib/grafana/dashboards
+    - ./scylla-monitoring-4.8.1/grafana/plugins:/var/lib/grafana/plugins
+    - ./scylla-monitoring-4.8.1/grafana/provisioning:/var/lib/grafana/provisioning
+    - ./scylla-monitoring-4.8.1/grafana/data:/var/lib/grafana
+    networks:
+      public:
+        ipv4_address: 192.168.100.202
+
+  loki:
+    command:
+    - --config.file=/mnt/config/loki-config.yaml
+    container_name: loki
+    image: grafana/loki:2.9.5
+    ports:
+    - 3100:3100
+    volumes:
+    - ./scylla-monitoring-4.8.1/loki/rules:/etc/loki/rules
+    - ./scylla-monitoring-4.8.1/loki/conf:/mnt/config
+    networks:
+      public:
+        ipv4_address: 192.168.100.203
+
+  promotheus:
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    container_name: aprom
+    image: prom/prometheus:v2.51.1
+    ports:
+    - 9090:9090
+    volumes:
+    - ./scylla-monitoring-4.8.1/prometheus/build/prometheus.yml:/etc/prometheus/prometheus.yml
+    - ./scylla-monitoring-4.8.1/prometheus/prom_rules/:/etc/prometheus/prom_rules/
+    # instead of the following three targets, you can place three files under one directory and mount that directory
+    # If you do, uncomment the following line and delete the three lines afterwards
+    #- /path/to/targets:/etc/scylla.d/prometheus/targets/
+    - ./monitoring-config/scylla_servers.yml:/etc/scylla.d/prometheus/targets/scylla_servers.yml
+    - ./monitoring-config/scylla_manager_servers.yml:/etc/scylla.d/prometheus/targets/scylla_manager_servers.yml
+    - ./monitoring-config/scylla_servers.yml:/etc/scylla.d/prometheus/targets/node_exporter_servers.yml
+    - ./scylla-monitoring-4.8.1/prometheus/data:/prometheus/data
+
+    networks:
+      public:
+        ipv4_address: 192.168.100.204
+    
+
+  promtail:
+    command:
+    - --config.file=/etc/promtail/config.yml
+    container_name: promtail
+    image: grafana/promtail:2.7.3
+    ports:
+    - 1514:1514
+    - 9080:9080
+    volumes:
+    - ./scylla-monitoring-4.8.1/loki/promtail/promtail_config.compose.yml:/etc/promtail/config.yml
+    networks:
+      public:
+        ipv4_address: 192.168.100.205
+
+# Python
+  python:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    container_name: pyhost
+    hostname: pyhost
+    volumes:
+      - ./scripts:/scripts
+    networks:
+      public:
+        ipv4_address: 192.168.100.99
+    command: tail -f /dev/null
+
+volumes:
+  node1-data:
+  node2-data:
+  node3-data:
+  node4-data:
+  node5-data:
+
+networks:
+  public:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.100.0/24
