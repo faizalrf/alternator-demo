@@ -15,7 +15,7 @@ class AlternatorNodeLogFilter(logging.Filter):
         return bool(re.search(r'http://\d+\.\d+\.\d+\.\d+:8000', record.getMessage()))
 
 # -----------------------------------
-# 🔧 Base Logger Setup
+# Base Logger Setup
 # -----------------------------------
 logging.basicConfig(
     level=logging.INFO  # Set higher default to reduce spam
