@@ -2,7 +2,6 @@ import logging
 import re
 import time
 import random
-from botocore.config import Config as BotoConfig
 from alternator_lb import AlternatorLB, Config as ALBConfig
 import botocore.httpsession
 import urllib3.connection
